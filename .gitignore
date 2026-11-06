@@ -1,0 +1,24 @@
+
+# Virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Local data files
+sample_data/*.csv
+sample_data/*.xlsx
+sample_data/*.xls
+
+# OS files
+.DS_Store
+Thumbs.db
+
