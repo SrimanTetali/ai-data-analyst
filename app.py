@@ -1,6 +1,7 @@
 
 import streamlit as st
 import pandas as pd
+from src.analysis_engine import execute_analysis
 
 # Page Configuration
 st.set_page_config(
@@ -148,6 +149,165 @@ if uploaded_files:
                 df.describe(include="all").transpose(),
                 use_container_width=True
             )
+
+        
+        # -----------------------------
+        # Data Analysis
+        # -----------------------------
+        st.divider()
+        st.header("Data Analysis Engine")
+
+        numeric_columns = df.select_dtypes(
+            include="number"
+        ).columns.tolist()
+
+        all_columns = df.columns.tolist()
+
+        operation = st.selectbox(
+            "Select an analysis operation",
+            options=[
+                "sum",
+                "mean",
+                "median",
+                "min",
+                "max",
+                "count",
+                "group_sum",
+                "group_mean",
+                "group_count",
+                "top_n",
+                "bottom_n",
+                "correlation",
+                "summary",
+                "trend",
+                "anomalies",
+            ]
+        )
+
+        plan = {
+            "operation": operation
+        }
+
+        # -----------------------------
+        # Operation Parameters
+        # -----------------------------
+
+        if operation in ["sum", "mean", "median", "min", "max"]:
+            plan["value_column"] = st.selectbox(
+                "Select numeric column",
+                numeric_columns
+            )
+
+        elif operation == "count":
+            plan["value_column"] = st.selectbox(
+                "Select column to count",
+                all_columns
+            )
+
+        elif operation in ["group_sum", "group_mean"]:
+            plan["group_by"] = st.selectbox(
+                "Group by column",
+                all_columns
+            )
+
+            plan["value_column"] = st.selectbox(
+                "Numeric column",
+                numeric_columns
+            )
+
+        elif operation == "group_count":
+            plan["group_by"] = st.selectbox(
+                "Group by column",
+                all_columns
+            )
+
+            plan["value_column"] = st.selectbox(
+                "Column to count",
+                ["Count rows"] + all_columns
+            )
+
+            if plan["value_column"] == "Count rows":
+                plan["value_column"] = None
+
+        elif operation in ["top_n", "bottom_n"]:
+            plan["value_column"] = st.selectbox(
+                "Numeric column",
+                numeric_columns
+            )
+
+            plan["n"] = st.slider(
+                "Number of records",
+                min_value=1,
+                max_value=20,
+                value=5
+            )
+
+        elif operation == "correlation":
+            plan["columns"] = st.multiselect(
+                "Select numeric columns",
+                numeric_columns,
+                default=numeric_columns
+            )
+
+        elif operation == "trend":
+            plan["date_column"] = st.selectbox(
+                "Date column",
+                all_columns
+            )
+
+            plan["value_column"] = st.selectbox(
+                "Numeric column",
+                numeric_columns
+            )
+
+            plan["period"] = st.selectbox(
+                "Trend period",
+                ["daily", "weekly", "monthly", "quarterly", "yearly"],
+                index=2
+            )
+
+        elif operation == "anomalies":
+            plan["value_column"] = st.selectbox(
+                "Numeric column",
+                numeric_columns
+            )
+
+            plan["threshold"] = st.slider(
+                "Anomaly threshold (Z-score)",
+                min_value=1.0,
+                max_value=5.0,
+                value=3.0,
+                step=0.5
+            )
+
+        # -----------------------------
+        # Execute Analysis
+        # -----------------------------
+
+        if st.button("Run Analysis", type="primary"):
+
+            try:
+                result = execute_analysis(df, plan)
+
+                st.subheader("Analysis Result")
+
+                if isinstance(result, pd.DataFrame):
+                    st.dataframe(
+                        result,
+                        use_container_width=True
+                    )
+
+                else:
+                    st.metric(
+                        label=f"Result: {operation}",
+                        value=f"{result:,.2f}"
+                        if isinstance(result, (int, float))
+                        else str(result)
+                    )
+
+            except Exception as e:
+                st.error(f"Analysis failed: {e}")
+
 
     except Exception as e:
 
